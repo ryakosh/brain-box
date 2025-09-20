@@ -1,0 +1,13 @@
+[project]
+name = "brain-box"
+version = "0.1.0"
+description = ""
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "sqlmodel",
+    "alembic",
+]
+
+[tool.ruff]
+line-length = 88

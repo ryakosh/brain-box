@@ -18,11 +18,39 @@ class Topic(SQLModel, table=True):
     entries: list[Entry] = Relationship(back_populates="topic")
 
 
+class TopicCreate(SQLModel):
+    """Model for creating a new topic."""
+
+    name: str
+    parent_id: int | None = None
+
+
+class TopicUpdate(SQLModel):
+    """Model for updating an existing topic."""
+
+    name: str | None = None
+    parent_id: int | None = None
+
+
+class TopicRead(SQLModel):
+    """Model for reading a topic."""
+
+    id: int
+    name: str
+    parent_id: int | None
+
+
+class TopicReadWithDetails(TopicRead):
+    """Model for reading a topic with its nested children and entries."""
+
+    children: list[TopicRead] = []
+
+
 class Entry(SQLModel, table=True):
     """Database model for an entry."""
 
     id: int | None = Field(default=None, primary_key=True)
-    description: str = Field()
+    description: str
     created_at: datetime = Field(default_factory=utils.now)
     updated_at: datetime = Field(
         default_factory=utils.now,
@@ -32,3 +60,25 @@ class Entry(SQLModel, table=True):
 
     topic_id: int = Field(foreign_key="topic.id")
     topic: Topic = Relationship(back_populates="entries")
+
+
+class EntryCreate(SQLModel):
+    """Model for creating a new entry."""
+
+    description: str
+    topic_id: int
+
+
+class EntryUpdate(SQLModel):
+    """Model for updating an existing entry."""
+
+    description: str | None = None
+    topic_id: int | None = None
+
+
+class EntryRead(SQLModel):
+    """Model for reading an entry."""
+
+    id: int
+    description: str
+    topic: TopicRead

@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Optional
 from datetime import datetime
 
 from sqlmodel import Field, Relationship, SQLModel
@@ -13,9 +13,11 @@ class Topic(SQLModel, table=True):
     name: str = Field(index=True)
 
     parent_id: int | None = Field(default=None, foreign_key="topic.id")
-    parent: Topic | None = Relationship(back_populates="children")
-    children: list[Topic] = Relationship(back_populates="parent")
-    entries: list[Entry] = Relationship(back_populates="topic")
+    parent: Optional["Topic"] = Relationship(
+        back_populates="children", sa_relationship_kwargs=dict(remote_side="Topic.id")
+    )
+    children: list["Topic"] = Relationship(back_populates="parent")
+    entries: list["Entry"] = Relationship(back_populates="topic")
 
 
 class TopicCreate(SQLModel):

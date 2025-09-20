@@ -1,4 +1,4 @@
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from brain_box import models
 

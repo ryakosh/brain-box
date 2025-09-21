@@ -2,12 +2,22 @@
 name = "brain-box"
 version = "0.1.0"
 description = ""
+requires-python = ">=3.10"
 dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "sqlmodel",
-    "alembic",
+    "alembic", 
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "httpx",
 ]
 
 [tool.ruff]
 line-length = 88
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

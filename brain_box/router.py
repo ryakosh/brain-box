@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel import Session
 
 from brain_box import crud, models
@@ -35,6 +35,32 @@ def read_topic(topic_id: int, db: Session = Depends(get_session)):
         raise HTTPException(status_code=404, detail="Topic not found")
 
     return db_topic
+
+
+@api_router.get(
+    "/topics/search/", response_model=list[models.TopicRead], tags=["Topics"]
+)
+def search_topics(
+    q: str = Query(
+        ...,
+        min_length=1,
+        max_length=50,
+        title="Search Query",
+        description="The search term to look for in topics.",
+    ),
+    limit: int = Query(
+        10,
+        ge=1,
+        le=100,
+        description="Maximum number of search results to return.",
+    ),
+    db: Session = Depends(get_session),
+):
+    """Search for topics by name with case-insensitive partial matching."""
+
+    results = crud.search_topics(session=db, q=q, limit=limit)
+
+    return results
 
 
 @api_router.put("/topics/{topic_id}", response_model=models.TopicRead, tags=["Topics"])

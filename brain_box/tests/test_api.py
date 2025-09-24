@@ -1,4 +1,7 @@
 from fastapi.testclient import TestClient
+from sqlmodel import Session
+
+from brain_box import models
 
 
 def test_create_and_read_topic(client: TestClient):
@@ -50,6 +53,75 @@ def test_read_topic_not_found(client: TestClient):
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Topic not found"
+
+
+def test_search_topics_happy_path(client: TestClient, session: Session):
+    session.add_all(
+        [
+            models.Topic(name="Python Programming"),
+            models.Topic(name="JavaScript Essentials"),
+            models.Topic(name="Another Python Topic"),
+        ]
+    )
+    session.commit()
+
+    response = client.get("/api/topics/search/?q=python")
+
+    assert response.status_code == 200
+    results = response.json()
+    assert len(results) == 2
+    assert results[0]["name"] == "Python Programming"
+    assert results[1]["name"] == "Another Python Topic"
+
+
+def test_search_topics_case_insensitive(client: TestClient, session: Session):
+    session.add(models.Topic(name="Cooking"))
+    session.commit()
+
+    response = client.get("/api/topics/search/?q=COOK")
+
+    assert response.status_code == 200
+    results = response.json()
+    assert len(results) == 1
+    assert results[0]["name"] == "Cooking"
+
+
+def test_search_topics_no_results(client: TestClient, session: Session):
+    session.add(models.Topic(name="Go Language"))
+    session.commit()
+
+    response = client.get("/api/topics/search/?q=ruby")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_search_topics_uses_limit(client: TestClient, session: Session):
+    session.add_all(
+        [
+            models.Topic(name="SQL Basics"),
+            models.Topic(name="Advanced SQL"),
+            models.Topic(name="NoSQL Databases"),
+        ]
+    )
+    session.commit()
+
+    response = client.get("/api/topics/search/?q=sql&limit=2")
+
+    assert response.status_code == 200
+    assert len(response.json()) == 2
+
+
+def test_search_topics_validation_error_missing_q(client: TestClient):
+    response = client.get("/api/topics/search/")
+
+    assert response.status_code == 422
+
+
+def test_search_topics_validation_error_q_too_short(client: TestClient):
+    response = client.get("/api/topics/search/?q=")
+
+    assert response.status_code == 422
 
 
 def test_create_entry_for_topic(client: TestClient):

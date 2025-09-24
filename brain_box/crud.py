@@ -1,4 +1,4 @@
-from sqlmodel import Session
+from sqlmodel import Session, func, select
 
 from brain_box import models
 
@@ -141,3 +141,27 @@ def delete_entry(session: Session, entry: models.Entry) -> None:
 
     session.delete(entry)
     session.commit()
+
+
+def search_topics(session: Session, q: str, limit: int = 10) -> list[models.Topic]:
+    """
+    Searches for topics by name with case-insensitive partial matching.
+
+    Args:
+        session: The database session.
+        name: The partial name of the topic to search for.
+        limit: The maximum number of topics to return.
+
+    Returns:
+        A list of matching Topic objects.
+    """
+
+    search_pattern = f"%{q.lower()}%"
+    statement = (
+        select(models.Topic)
+        .where(func.lower(models.Topic.name).like(search_pattern))
+        .limit(limit)
+    )
+    results = session.exec(statement).all()
+
+    return list(results)

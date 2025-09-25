@@ -1,3 +1,5 @@
+from typing import cast
+from sqlalchemy.orm import aliased
 from sqlmodel import Session, func, select
 
 from brain_box import models
@@ -23,7 +25,7 @@ def create_topic(session: Session, topic_in: models.TopicCreate) -> models.Topic
     return db_topic
 
 
-def get_topic(session: Session, topic_id: int) -> models.Topic | None:
+def get_topic(session: Session, topic_id: int) -> models.TopicRead | None:
     """Retrieves a single topic by its ID.
 
     Args:
@@ -34,7 +36,51 @@ def get_topic(session: Session, topic_id: int) -> models.Topic | None:
         The topic model instance or `None` if not found.
     """
 
-    return session.get(models.Topic, topic_id)
+    statement = select(models.Topic, _entries_count_subquery()).where(
+        models.Topic.id == topic_id
+    )
+
+    result = session.exec(statement).first()
+
+    if result:
+        return models.TopicRead(
+            id=cast(int, result[0].id),
+            name=result[0].name,
+            parent_id=result[0].parent_id,
+            entries_count=result[1],
+        )
+
+
+def get_topics(
+    session: Session, *, parent_id: int | None, skip: int = 0, limit: int = 100
+) -> list[models.TopicRead]:
+    """Fetches a paginated list of topics.
+
+    Args:
+        session: The database session.
+        parent_id: The ID of the parent topic.
+        skip: The number of items to skip.
+        limit: Limits the number of items returned.
+
+    Returns:
+        The list of topics.
+    """
+
+    statement = (
+        select(models.Topic, _entries_count_subquery())
+        .where(models.Topic.parent_id == parent_id)
+        .order_by(models.Topic.name)
+        .offset(skip)
+        .limit(limit)
+    )
+    results = session.exec(statement).all()
+
+    return [
+        models.TopicRead(
+            id=cast(int, t.id), name=t.name, parent_id=t.parent_id, entries_count=c
+        )
+        for t, c in results
+    ]
 
 
 def update_topic(
@@ -71,6 +117,17 @@ def delete_topic(session: Session, topic: models.Topic) -> None:
 
     session.delete(topic)
     session.commit()
+
+
+def _entries_count_subquery():
+    subquery = (
+        select(func.count(models.Entry.id))
+        .where(models.Entry.topic_id == models.Topic.id)
+        .correlate(models.Topic)
+        .scalar_subquery()
+    )
+
+    return subquery.label("entries_count")
 
 
 def create_entry(session: Session, entry_in: models.EntryCreate) -> models.Entry:

@@ -12,7 +12,7 @@ class Topic(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(index=True)
 
-    parent_id: int | None = Field(default=None, foreign_key="topic.id")
+    parent_id: int | None = Field(default=None, nullable=True, foreign_key="topic.id")
     parent: Optional["Topic"] = Relationship(
         back_populates="children", sa_relationship_kwargs=dict(remote_side="Topic.id")
     )
@@ -24,7 +24,7 @@ class TopicCreate(SQLModel):
     """Model for creating a new topic."""
 
     name: str
-    parent_id: int | None = None
+    parent_id: int | None = Field(default=None, ge=1)
 
 
 class TopicUpdate(SQLModel):
@@ -40,12 +40,7 @@ class TopicRead(SQLModel):
     id: int
     name: str
     parent_id: int | None
-
-
-class TopicReadWithDetails(TopicRead):
-    """Model for reading a topic with its nested children and entries."""
-
-    children: list[TopicRead] = []
+    entries_count: int | None = None
 
 
 class Entry(SQLModel, table=True):

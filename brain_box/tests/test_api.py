@@ -40,19 +40,69 @@ def test_create_hierarchical_topic(client: TestClient):
     assert child_topic["name"] == "Python"
     assert child_topic["parent_id"] == parent_id
 
-    response_parent_detailed = client.get(f"/api/topics/{parent_id}")
-
-    assert response_parent_detailed.status_code == 200
-    parent_detailed = response_parent_detailed.json()
-    assert len(parent_detailed["children"]) == 1
-    assert parent_detailed["children"][0]["name"] == "Python"
-
 
 def test_read_topic_not_found(client: TestClient):
     response = client.get("/api/topics/999")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Topic not found"
+
+
+def test_read_topics_returns_root_topics_by_default(
+    client: TestClient, session: Session
+):
+    root1 = models.Topic(name="Root A")
+    root2 = models.Topic(name="Root B")
+    session.add_all([root1, root2])
+    session.commit()
+    session.refresh(root1)
+
+    child1 = models.Topic(name="Child A1", parent_id=root1.id)
+    session.add(child1)
+    session.commit()
+
+    response = client.get("/api/topics/")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert {d["name"] for d in data} == {"Root A", "Root B"}
+
+
+def test_read_topics_filters_by_parent_id(client: TestClient, session: Session):
+    root = models.Topic(name="Root")
+    session.add(root)
+    session.commit()
+    session.refresh(root)
+
+    child1 = models.Topic(name="Child 1", parent_id=root.id)
+    child2 = models.Topic(name="Child 2", parent_id=root.id)
+    session.add_all([child1, child2])
+    session.commit()
+
+    response = client.get(f"/api/topics/?parent_id={root.id}")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert {d["name"] for d in data} == {"Child 1", "Child 2"}
+
+
+def test_read_topics_pagination(client: TestClient, session: Session):
+    session.add_all([models.Topic(name=f"Topic {i}") for i in range(5)])
+    session.commit()
+
+    response = client.get("/api/topics/?limit=2")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert data[0]["name"] == "Topic 0"
+
+    response = client.get("/api/topics/?limit=2&skip=2")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert data[0]["name"] == "Topic 2"
 
 
 def test_search_topics_happy_path(client: TestClient, session: Session):

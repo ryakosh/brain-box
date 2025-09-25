@@ -23,9 +23,7 @@ def create_topic(topic_in: models.TopicCreate, db: Session = Depends(get_session
     return crud.create_topic(session=db, topic_in=topic_in)
 
 
-@api_router.get(
-    "/topics/{topic_id}", response_model=models.TopicReadWithDetails, tags=["Topics"]
-)
+@api_router.get("/topics/{topic_id}", response_model=models.TopicRead, tags=["Topics"])
 def read_topic(topic_id: int, db: Session = Depends(get_session)):
     """Retrieve a single topic by its ID."""
 
@@ -35,6 +33,23 @@ def read_topic(topic_id: int, db: Session = Depends(get_session)):
         raise HTTPException(status_code=404, detail="Topic not found")
 
     return db_topic
+
+
+@api_router.get("/topics/", response_model=list[models.TopicRead], tags=["Topics"])
+def read_topics(
+    *,
+    parent_id: int | None = Query(
+        default=None, description="Filter by parent ID. Null for root topics."
+    ),
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=200),
+    db: Session = Depends(get_session),
+):
+    """Get a list of topics with pagination, filterable by parent."""
+
+    results = crud.get_topics(session=db, parent_id=parent_id, skip=skip, limit=limit)
+
+    return results
 
 
 @api_router.get(

@@ -23,19 +23,26 @@ def create_topic(topic_in: models.TopicCreate, db: Session = Depends(get_session
     return crud.create_topic(session=db, topic_in=topic_in)
 
 
-@api_router.get("/topics/{topic_id}", response_model=models.TopicRead, tags=["Topics"])
+@api_router.get(
+    "/topics/{topic_id}", response_model=models.TopicReadWithEntryCount, tags=["Topics"]
+)
 def read_topic(topic_id: int, db: Session = Depends(get_session)):
     """Retrieve a single topic by its ID."""
 
-    db_topic = crud.get_topic(session=db, topic_id=topic_id)
+    db_topic_with_entries_count = crud.get_topic(session=db, topic_id=topic_id)
 
-    if db_topic is None:
+    if db_topic_with_entries_count is None:
         raise HTTPException(status_code=404, detail="Topic not found")
 
-    return db_topic
+    return models.TopicReadWithEntryCount.model_validate(
+        db_topic_with_entries_count[0],
+        update={"entries_count": db_topic_with_entries_count[1]},
+    )
 
 
-@api_router.get("/topics/", response_model=list[models.TopicRead], tags=["Topics"])
+@api_router.get(
+    "/topics/", response_model=list[models.TopicReadWithEntryCount], tags=["Topics"]
+)
 def read_topics(
     *,
     parent_id: int | None = Query(
@@ -49,7 +56,10 @@ def read_topics(
 
     results = crud.get_topics(session=db, parent_id=parent_id, skip=skip, limit=limit)
 
-    return results
+    return [
+        models.TopicReadWithEntryCount.model_validate(t, update={"entries_count": c})
+        for t, c in results
+    ]
 
 
 @api_router.get(
@@ -84,12 +94,12 @@ def update_topic(
 ):
     """Update a topic's name or change its parent."""
 
-    db_topic = crud.get_topic(session=db, topic_id=topic_id)
+    result = crud.get_topic(session=db, topic_id=topic_id)
 
-    if not db_topic:
+    if not result:
         raise HTTPException(status_code=404, detail="Topic not found")
 
-    return crud.update_topic(session=db, topic=db_topic, topic_in=topic_in)
+    return crud.update_topic(session=db, topic=result[0], topic_in=topic_in)
 
 
 @api_router.delete(
@@ -103,7 +113,7 @@ def delete_topic(topic_id: int, db: Session = Depends(get_session)):
     if not db_topic:
         raise HTTPException(status_code=404, detail="Topic not found")
 
-    crud.delete_topic(session=db, topic=db_topic)
+    crud.delete_topic(session=db, topic=db_topic[0])
 
     return None
 

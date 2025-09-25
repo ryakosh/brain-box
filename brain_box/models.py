@@ -40,6 +40,9 @@ class TopicRead(SQLModel):
     id: int
     name: str
     parent_id: int | None
+
+
+class TopicReadWithEntryCount(TopicRead):
     entries_count: int | None = None
 
 

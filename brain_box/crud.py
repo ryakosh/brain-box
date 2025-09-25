@@ -1,4 +1,5 @@
-from sqlmodel import Session, func, select
+from sqlalchemy.orm import aliased
+from sqlmodel import Session, func, or_, select
 
 from brain_box import models
 
@@ -23,54 +24,68 @@ def create_topic(session: Session, topic_in: models.TopicCreate) -> models.Topic
     return db_topic
 
 
-def get_topic(session: Session, topic_id: int) -> tuple[models.Topic, int] | None:
-    """Retrieves a single topic by its ID.
+def get_topic(session: Session, topic_id: int) -> tuple[models.Topic, int, int] | None:
+    """Retrieves a single topic with its children and entry counts.
 
     Args:
         session: The database session.
         topic_id: The ID of the topic to retrieve.
 
     Returns:
-        A tuple consisting of the topic and count of entries respectively.
+        A tuple, which contains:
+        (Topic object, count of its entries, count of its children).
     """
 
-    statement = select(models.Topic, _entries_count_subquery()).where(
-        models.Topic.id == topic_id
-    )
+    ParentTopic = aliased(models.Topic, name="parent_topic")
+    ChildTopic = aliased(models.Topic, name="child_topic")
+    Entry = aliased(models.Entry)
+
+    statement = select(
+        ParentTopic,
+        _topic_entries_subquery(ParentTopic, Entry),
+        _topic_children_subquery(ParentTopic, ChildTopic),
+    ).where(ParentTopic.id == topic_id)
 
     result = session.exec(statement).first()
 
     if result is None:
         return
 
-    return (
-        result[0],
-        result[1],
-    )
+    return result
 
 
 def get_topics(
     session: Session, *, parent_id: int | None = None, skip: int = 0, limit: int = 100
-) -> list[tuple[models.Topic, int]]:
-    """Fetches a paginated list of topics.
+) -> list[tuple[models.Topic, int, int]]:
+    """Fetches a paginated list of topics with their children and entry counts.
 
     Args:
         session: The database session.
-        parent_id: The ID of the parent topic.
-        skip: The number of items to skip.
-        limit: Limits the number of items returned.
+        parent_id: The ID of the parent topic to filter by. If None, fetches root topics.
+        skip: The number of records to skip (for pagination).
+        limit: The maximum number of records to return.
 
     Returns:
-        A tuple consisting of the topic and count of entries respectively.
+        A list of tuples, where each tuple contains:
+        (Topic object, count of its entries, count of its children).
     """
 
+    ParentTopic = aliased(models.Topic, name="parent_topic")
+    ChildTopic = aliased(models.Topic, name="child_topic")
+    Entry = aliased(models.Entry)
+
     statement = (
-        select(models.Topic, _entries_count_subquery())
-        .where(models.Topic.parent_id == parent_id)
-        .order_by(models.Topic.name)
+        select(
+            ParentTopic,
+            _topic_entries_subquery(ParentTopic, Entry),
+            _topic_children_subquery(ParentTopic, ChildTopic),
+        )
+        .where(ParentTopic.parent_id == parent_id)
+        .order_by(ParentTopic.name)
         .offset(skip)
         .limit(limit)
     )
+
     results = session.exec(statement).all()
 
     return list(results)
@@ -112,12 +127,23 @@ def delete_topic(session: Session, topic: models.Topic) -> None:
     session.commit()
 
 
-def _entries_count_subquery():
+def _topic_entries_subquery(ParentTopic, Entry):
     return (
-        select(func.count(models.Entry.id))
-        .where(models.Entry.topic_id == models.Topic.id)
-        .correlate(models.Topic)
+        select(func.count(Entry.id))
+        .where(Entry.topic_id == ParentTopic.id)
+        .correlate(ParentTopic)
         .scalar_subquery()
+        .label("entries_count")
+    )
+
+
+def _topic_children_subquery(ParentTopic, ChildTopic):
+    return (
+        select(func.count(ChildTopic.id))
+        .where(ChildTopic.parent_id == ParentTopic.id)
+        .correlate(ParentTopic)
+        .scalar_subquery()
+        .label("children_count")
     )
 
 

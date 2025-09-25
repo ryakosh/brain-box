@@ -42,8 +42,9 @@ class TopicRead(SQLModel):
     parent_id: int | None
 
 
-class TopicReadWithEntryCount(TopicRead):
-    entries_count: int | None = None
+class TopicReadWithCounts(TopicRead):
+    entries_count: int
+    children_count: int
 
 
 class Entry(SQLModel, table=True):

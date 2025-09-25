@@ -24,24 +24,27 @@ def create_topic(topic_in: models.TopicCreate, db: Session = Depends(get_session
 
 
 @api_router.get(
-    "/topics/{topic_id}", response_model=models.TopicReadWithEntryCount, tags=["Topics"]
+    "/topics/{topic_id}", response_model=models.TopicReadWithCounts, tags=["Topics"]
 )
 def read_topic(topic_id: int, db: Session = Depends(get_session)):
     """Retrieve a single topic by its ID."""
 
-    db_topic_with_entries_count = crud.get_topic(session=db, topic_id=topic_id)
+    result = crud.get_topic(session=db, topic_id=topic_id)
 
-    if db_topic_with_entries_count is None:
+    if result is None:
         raise HTTPException(status_code=404, detail="Topic not found")
 
-    return models.TopicReadWithEntryCount.model_validate(
-        db_topic_with_entries_count[0],
-        update={"entries_count": db_topic_with_entries_count[1]},
+    return models.TopicReadWithCounts.model_validate(
+        result[0],
+        update={
+            "entries_count": result[1],
+            "children_count": result[2],
+        },
     )
 
 
 @api_router.get(
-    "/topics/", response_model=list[models.TopicReadWithEntryCount], tags=["Topics"]
+    "/topics/", response_model=list[models.TopicReadWithCounts], tags=["Topics"]
 )
 def read_topics(
     *,
@@ -57,8 +60,10 @@ def read_topics(
     results = crud.get_topics(session=db, parent_id=parent_id, skip=skip, limit=limit)
 
     return [
-        models.TopicReadWithEntryCount.model_validate(t, update={"entries_count": c})
-        for t, c in results
+        models.TopicReadWithCounts.model_validate(
+            t, update={"entries_count": ec, "children_count": cc}
+        )
+        for t, ec, cc in results
     ]
 
 

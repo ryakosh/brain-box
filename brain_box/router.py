@@ -152,6 +152,30 @@ def read_entry(entry_id: int, db: Session = Depends(get_session)):
     return db_entry
 
 
+@api_router.get(
+    "/entries/search/", response_model=list[models.EntryRead], tags=["Entries"]
+)
+def search_entries(
+    session: Session = Depends(get_session),
+    q: str = Query(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="Search query string for entries.",
+    ),
+    limit: int = Query(default=10, ge=1, le=100),
+    skip: int = Query(
+        default=0,
+        ge=0,
+    ),
+):
+    """Search for entries."""
+
+    results = crud.search_entries(session=session, q=q, limit=limit, skip=skip)
+
+    return results
+
+
 @api_router.put(
     "/entries/{entry_id}", response_model=models.EntryRead, tags=["Entries"]
 )

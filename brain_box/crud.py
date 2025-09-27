@@ -1,5 +1,6 @@
+from sqlalchemy import text
 from sqlalchemy.orm import aliased
-from sqlmodel import Session, func, or_, select
+from sqlmodel import Session, func, select
 
 from brain_box import models
 
@@ -219,11 +220,11 @@ def delete_entry(session: Session, entry: models.Entry) -> None:
 
 def search_topics(session: Session, q: str, limit: int = 10) -> list[models.Topic]:
     """
-    Searches for topics by name with case-insensitive partial matching.
+    Searches for topics.
 
     Args:
         session: The database session.
-        name: The partial name of the topic to search for.
+        q: The search string.
         limit: The maximum number of topics to return.
 
     Returns:
@@ -239,3 +240,35 @@ def search_topics(session: Session, q: str, limit: int = 10) -> list[models.Topi
     results = session.exec(statement).all()
 
     return list(results)
+
+
+def search_entries(
+    session: Session, q: str, limit: int = 25, skip: int = 0
+) -> list[models.Entry]:
+    """Searches for entries.
+
+    Args:
+        session: The database session.
+        q: The search string.
+        limit: The maximum number of entries to return.
+        skip: The number of records to skip (for pagination).
+
+    Returns:
+        A list of matching Entry model instances.
+    """
+
+    query_sql = text("""
+        SELECT e.id, e.description, e.created_at, e.updated_at, e.topic_id, t.name, t.parent_id
+        FROM entry e
+        JOIN topic t ON t.id = e.topic_id
+        JOIN entry_fts ON e.id = entry_fts.rowid
+        WHERE entry_fts MATCH :query
+        LIMIT :limit OFFSET :offset
+    """)
+
+    result = session.connection().execute(query_sql, {"query": q, "limit": limit, "offset": skip})
+
+    rows = result.fetchall()
+    entries = [models.Entry(id=row.id, description=row.description, created_at=row.created_at, updated_at=row.updated_at, topic_id=row.topic_id, topic=models.Topic(id=row.topic_id, name=row.name, parent_id=row.parent_id)) for row in rows]
+
+    return entries

@@ -10,7 +10,7 @@ class Topic(SQLModel, table=True):
     """Database model for a topic."""
 
     id: int | None = Field(default=None, primary_key=True)
-    name: str = Field(index=True)
+    name: str = Field(index=True, unique=True)
 
     parent_id: int | None = Field(default=None, nullable=True, foreign_key="topic.id")
     parent: Optional["Topic"] = Relationship(

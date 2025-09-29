@@ -3,6 +3,7 @@ from sqlalchemy.orm import aliased
 from sqlmodel import Session, func, select
 
 from brain_box import models
+from brain_box.utils import sanitize_alnum
 
 
 def create_topic(session: Session, topic_in: models.TopicCreate) -> models.Topic:
@@ -266,9 +267,22 @@ def search_entries(
         LIMIT :limit OFFSET :offset
     """)
 
-    result = session.connection().execute(query_sql, {"query": q, "limit": limit, "offset": skip})
+    result = session.connection().execute(
+        query_sql,
+        {"query": f"{sanitize_alnum(q.strip())}*", "limit": limit, "offset": skip},
+    )
 
     rows = result.fetchall()
-    entries = [models.Entry(id=row.id, description=row.description, created_at=row.created_at, updated_at=row.updated_at, topic_id=row.topic_id, topic=models.Topic(id=row.topic_id, name=row.name, parent_id=row.parent_id)) for row in rows]
+    entries = [
+        models.Entry(
+            id=row.id,
+            description=row.description,
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+            topic_id=row.topic_id,
+            topic=models.Topic(id=row.topic_id, name=row.name, parent_id=row.parent_id),
+        )
+        for row in rows
+    ]
 
     return entries

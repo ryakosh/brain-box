@@ -6,6 +6,18 @@ from brain_box import models
 from brain_box.utils import sanitize_alnum
 
 
+class CRUDError(Exception):
+    pass
+
+
+class AlreadyExistsError(CRUDError):
+    pass
+
+
+class NotFoundError(CRUDError):
+    pass
+
+
 def create_topic(session: Session, topic_in: models.TopicCreate) -> models.Topic:
     """Creates a new topic in the database.
 
@@ -16,6 +28,17 @@ def create_topic(session: Session, topic_in: models.TopicCreate) -> models.Topic
     Returns:
         The newly created topic.
     """
+
+    topic_with_same_name = select(models.Topic).where(
+        models.Topic.name == topic_in.name
+    )
+    parent_topic = select(models.Topic).where(models.Topic.id == topic_in.parent_id)
+
+    if session.exec(topic_with_same_name).first():
+        raise AlreadyExistsError("Topic name already in use")
+
+    if topic_in.parent_id and not session.exec(parent_topic).first():
+        raise NotFoundError("Parent topic not found")
 
     db_topic = models.Topic.model_validate(topic_in)
 

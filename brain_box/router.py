@@ -17,10 +17,12 @@ api_router = APIRouter(prefix="/api")
 def create_topic(topic_in: models.TopicCreate, db: Session = Depends(get_session)):
     """Create a new topic."""
 
-    if topic_in.parent_id and not crud.get_topic(db, topic_in.parent_id):
-        raise HTTPException(status_code=404, detail="Parent topic not found")
-
-    return crud.create_topic(session=db, topic_in=topic_in)
+    try:
+        return crud.create_topic(session=db, topic_in=topic_in)
+    except crud.NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except crud.AlreadyExistsError as e:
+        raise HTTPException(status_code=409, detail=str(e))
 
 
 @api_router.get(

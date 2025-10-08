@@ -10,9 +10,11 @@ class Topic(SQLModel, table=True):
     """Database model for a topic."""
 
     id: int | None = Field(default=None, primary_key=True)
-    name: str = Field(index=True, unique=True)
+    name: str = Field(unique=True)
 
-    parent_id: int | None = Field(default=None, nullable=True, foreign_key="topic.id")
+    parent_id: int | None = Field(
+        default=None, nullable=True, foreign_key="topic.id", index=True
+    )
     parent: Optional["Topic"] = Relationship(
         back_populates="children", sa_relationship_kwargs=dict(remote_side="Topic.id")
     )
@@ -59,7 +61,7 @@ class Entry(SQLModel, table=True):
         nullable=False,
     )
 
-    topic_id: int = Field(foreign_key="topic.id")
+    topic_id: int = Field(foreign_key="topic.id", index=True)
     topic: Topic = Relationship(back_populates="entries")
 
 

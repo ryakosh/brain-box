@@ -106,7 +106,7 @@ def get_topics(
             _topic_children_subquery(ParentTopic, ChildTopic),
         )
         .where(ParentTopic.parent_id == parent_id)
-        .order_by(ParentTopic.name)
+        .order_by(func.lower(ParentTopic.name))
         .offset(skip)
         .limit(limit)
     )

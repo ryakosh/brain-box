@@ -1,7 +1,7 @@
 from typing import Optional
 from datetime import datetime
 
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
 
 from brain_box import utils
 
@@ -10,7 +10,7 @@ class Topic(SQLModel, table=True):
     """Database model for a topic."""
 
     id: int | None = Field(default=None, primary_key=True)
-    name: str = Field(unique=True)
+    name: str
 
     parent_id: int | None = Field(
         default=None, nullable=True, foreign_key="topic.id", index=True
@@ -20,6 +20,10 @@ class Topic(SQLModel, table=True):
     )
     children: list["Topic"] = Relationship(back_populates="parent")
     entries: list["Entry"] = Relationship(back_populates="topic")
+
+    __table_args__ = (
+        UniqueConstraint("name", "parent_id", name="uq_topic_name_parent_id"),
+    )
 
 
 class TopicCreate(SQLModel):
@@ -36,12 +40,20 @@ class TopicUpdate(SQLModel):
     parent_id: int | None = None
 
 
+class TopicParentInfo(SQLModel):
+    """Model for reading info of parent topic."""
+
+    name: str
+    parent_id: int | None
+
+
 class TopicRead(SQLModel):
     """Model for reading a topic."""
 
     id: int
     name: str
     parent_id: int | None
+    parent: TopicParentInfo | None
 
 
 class TopicReadWithCounts(TopicRead):

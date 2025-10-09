@@ -1,6 +1,6 @@
 from sqlalchemy import text
 from sqlalchemy.orm import aliased
-from sqlmodel import Session, func, select
+from sqlmodel import Session, func, null, select, or_, and_
 
 from brain_box import models
 from brain_box.utils import sanitize_alnum
@@ -30,8 +30,10 @@ def create_topic(session: Session, topic_in: models.TopicCreate) -> models.Topic
     """
 
     topic_with_same_name = select(models.Topic).where(
-        models.Topic.name == topic_in.name
+        func.lower(models.Topic.name) == topic_in.name.lower(),
+        models.Topic.parent_id == topic_in.parent_id,
     )
+
     parent_topic = select(models.Topic).where(models.Topic.id == topic_in.parent_id)
 
     if session.exec(topic_with_same_name).first():

@@ -284,7 +284,7 @@ def search_entries(
     """
 
     query_sql = text("""
-        SELECT e.id, e.description, e.created_at, e.updated_at, e.topic_id, t.name, t.parent_id
+        SELECT e.id, snippet(entry_fts, -1, '<b>', '</b>', '...', 20) AS description, e.created_at, e.updated_at, e.topic_id, t.name, t.parent_id
         FROM entry e
         JOIN topic t ON t.id = e.topic_id
         JOIN entry_fts ON e.id = entry_fts.rowid

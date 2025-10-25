@@ -17,14 +17,12 @@ class Topic(SQLModel, table=True):
         nullable=True,
         foreign_key="topic.id",
         index=True,
-        ondelete="CASCADE",
+        ondelete="SET NULL",
     )
     parent: Optional["Topic"] = Relationship(
         back_populates="children", sa_relationship_kwargs=dict(remote_side="Topic.id")
     )
-    children: list["Topic"] = Relationship(
-        back_populates="parent", sa_relationship_kwargs={"passive_deletes": True}
-    )
+    children: list["Topic"] = Relationship(back_populates="parent")
     entries: list["Entry"] = Relationship(
         back_populates="topic", sa_relationship_kwargs={"passive_deletes": True}
     )

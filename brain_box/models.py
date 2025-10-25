@@ -13,13 +13,21 @@ class Topic(SQLModel, table=True):
     name: str
 
     parent_id: int | None = Field(
-        default=None, nullable=True, foreign_key="topic.id", index=True
+        default=None,
+        nullable=True,
+        foreign_key="topic.id",
+        index=True,
+        ondelete="CASCADE",
     )
     parent: Optional["Topic"] = Relationship(
         back_populates="children", sa_relationship_kwargs=dict(remote_side="Topic.id")
     )
-    children: list["Topic"] = Relationship(back_populates="parent")
-    entries: list["Entry"] = Relationship(back_populates="topic")
+    children: list["Topic"] = Relationship(
+        back_populates="parent", sa_relationship_kwargs={"passive_deletes": True}
+    )
+    entries: list["Entry"] = Relationship(
+        back_populates="topic", sa_relationship_kwargs={"passive_deletes": True}
+    )
 
     __table_args__ = (
         UniqueConstraint("name", "parent_id", name="uq_topic_name_parent_id"),
@@ -73,7 +81,7 @@ class Entry(SQLModel, table=True):
         nullable=False,
     )
 
-    topic_id: int = Field(foreign_key="topic.id", index=True)
+    topic_id: int = Field(foreign_key="topic.id", index=True, ondelete="CASCADE")
     topic: Topic = Relationship(back_populates="entries")
 
 

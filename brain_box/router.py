@@ -5,7 +5,7 @@ from brain_box import crud, models
 from brain_box.db import get_session
 
 
-api_router = APIRouter(prefix="/api")
+api_router = APIRouter()
 
 
 @api_router.post(

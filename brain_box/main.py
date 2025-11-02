@@ -4,6 +4,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles as FastAPIStaticFiles
+from starlette.exceptions import HTTPException
 
 from brain_box.router import api_router
 from brain_box.db import create_db_and_tables
@@ -14,12 +15,13 @@ FRONTEND_DIR = BASE_DIR / "webapp"
 
 class StaticFiles(FastAPIStaticFiles):
     async def get_response(self, path: str, scope):
-        resp = await super().get_response(path, scope)
-
-        if resp.status_code == 404 and Path(path).suffix == "":
-            return await super().get_response(f"{path}.html", scope)
-        else:
-            return resp
+        try:
+            return await super().get_response(path, scope)
+        except HTTPException as ex:
+            if ex.status_code == 404:
+                return await super().get_response("index.html", scope)
+            else:
+                raise ex
 
 
 @asynccontextmanager

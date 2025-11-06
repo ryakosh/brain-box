@@ -118,6 +118,23 @@ def get_topics(
     return list(results)
 
 
+def sync_topics(session: Session) -> list[models.Topic]:
+    """
+    Get all the available topics.
+
+    Args:
+        session: The database session.
+
+    Returns:
+        A list of all Topic objects.
+    """
+
+    statement = select(models.Topic)
+    results = session.exec(statement).all()
+
+    return list(results)
+
+
 def update_topic(
     session: Session, topic: models.Topic, topic_in: models.TopicUpdate
 ) -> models.Topic:

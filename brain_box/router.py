@@ -25,6 +25,16 @@ def create_topic(topic_in: models.TopicCreate, db: Session = Depends(get_session
         raise HTTPException(status_code=409, detail=str(e))
 
 
+@api_router.get("/topics/sync", response_model=list[models.TopicRead], tags=["Topics"])
+def sync_topics(
+    *,
+    db: Session = Depends(get_session),
+):
+    """Get a list of all topics."""
+
+    return crud.sync_topics(session=db)
+
+
 @api_router.get(
     "/topics/{topic_id}", response_model=models.TopicReadWithCounts, tags=["Topics"]
 )

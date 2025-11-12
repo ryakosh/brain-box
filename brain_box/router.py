@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlmodel import Session
 
 from brain_box import crud, models
@@ -218,3 +218,12 @@ def delete_entry(entry_id: int, db: Session = Depends(get_session)):
     crud.delete_entry(session=db, entry=db_entry)
 
     return None
+
+
+@api_router.head("/health")
+async def health_check():
+    """
+    Health check endpoint, returns 200 OK if the server is healthy.
+    """
+
+    return Response(status_code=200)

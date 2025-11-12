@@ -1,8 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlmodel import Session
 
-from brain_box import crud, models
+from brain_box import crud
 from brain_box.db import get_session
+from brain_box.models.entry import EntryCreate, EntryRead, EntryUpdate
+from brain_box.models.topic import (
+    TopicCreate,
+    TopicRead,
+    TopicReadWithCounts,
+    TopicUpdate,
+)
 
 
 api_router = APIRouter()
@@ -10,11 +17,11 @@ api_router = APIRouter()
 
 @api_router.post(
     "/topics/",
-    response_model=models.TopicRead,
+    response_model=TopicRead,
     status_code=status.HTTP_201_CREATED,
     tags=["Topics"],
 )
-def create_topic(topic_in: models.TopicCreate, db: Session = Depends(get_session)):
+def create_topic(topic_in: TopicCreate, db: Session = Depends(get_session)):
     """Create a new topic."""
 
     try:
@@ -25,7 +32,7 @@ def create_topic(topic_in: models.TopicCreate, db: Session = Depends(get_session
         raise HTTPException(status_code=409, detail=str(e))
 
 
-@api_router.get("/topics/sync", response_model=list[models.TopicRead], tags=["Topics"])
+@api_router.get("/topics/sync", response_model=list[TopicRead], tags=["Topics"])
 def sync_topics(
     *,
     db: Session = Depends(get_session),
@@ -36,7 +43,7 @@ def sync_topics(
 
 
 @api_router.get(
-    "/topics/{topic_id}", response_model=models.TopicReadWithCounts, tags=["Topics"]
+    "/topics/{topic_id}", response_model=TopicReadWithCounts, tags=["Topics"]
 )
 def read_topic(topic_id: int, db: Session = Depends(get_session)):
     """Retrieve a single topic by its ID."""
@@ -46,7 +53,7 @@ def read_topic(topic_id: int, db: Session = Depends(get_session)):
     if result is None:
         raise HTTPException(status_code=404, detail="Topic not found")
 
-    return models.TopicReadWithCounts.model_validate(
+    return TopicReadWithCounts.model_validate(
         result[0],
         update={
             "entries_count": result[1],
@@ -55,9 +62,7 @@ def read_topic(topic_id: int, db: Session = Depends(get_session)):
     )
 
 
-@api_router.get(
-    "/topics/", response_model=list[models.TopicReadWithCounts], tags=["Topics"]
-)
+@api_router.get("/topics/", response_model=list[TopicReadWithCounts], tags=["Topics"])
 def read_topics(
     *,
     parent_id: int | None = Query(
@@ -72,16 +77,14 @@ def read_topics(
     results = crud.get_topics(session=db, parent_id=parent_id, skip=skip, limit=limit)
 
     return [
-        models.TopicReadWithCounts.model_validate(
+        TopicReadWithCounts.model_validate(
             t, update={"entries_count": ec, "children_count": cc}
         )
         for t, ec, cc in results
     ]
 
 
-@api_router.get(
-    "/topics/search/", response_model=list[models.TopicRead], tags=["Topics"]
-)
+@api_router.get("/topics/search/", response_model=list[TopicRead], tags=["Topics"])
 def search_topics(
     q: str = Query(
         ...,
@@ -105,9 +108,9 @@ def search_topics(
     return results
 
 
-@api_router.put("/topics/{topic_id}", response_model=models.TopicRead, tags=["Topics"])
+@api_router.put("/topics/{topic_id}", response_model=TopicRead, tags=["Topics"])
 def update_topic(
-    topic_id: int, topic_in: models.TopicUpdate, db: Session = Depends(get_session)
+    topic_id: int, topic_in: TopicUpdate, db: Session = Depends(get_session)
 ):
     """Update a topic's name or change its parent."""
 
@@ -137,11 +140,11 @@ def delete_topic(topic_id: int, db: Session = Depends(get_session)):
 
 @api_router.post(
     "/entries/",
-    response_model=models.EntryRead,
+    response_model=EntryRead,
     status_code=status.HTTP_201_CREATED,
     tags=["Entries"],
 )
-def create_entry(entry_in: models.EntryCreate, db: Session = Depends(get_session)):
+def create_entry(entry_in: EntryCreate, db: Session = Depends(get_session)):
     """Create a new  entry and associate it with a topic."""
 
     if not crud.get_topic(db, entry_in.topic_id):
@@ -150,9 +153,7 @@ def create_entry(entry_in: models.EntryCreate, db: Session = Depends(get_session
     return crud.create_entry(session=db, entry_in=entry_in)
 
 
-@api_router.get(
-    "/entries/{entry_id}", response_model=models.EntryRead, tags=["Entries"]
-)
+@api_router.get("/entries/{entry_id}", response_model=EntryRead, tags=["Entries"])
 def read_entry(entry_id: int, db: Session = Depends(get_session)):
     """Retrieve a single  entry by its ID."""
 
@@ -164,9 +165,7 @@ def read_entry(entry_id: int, db: Session = Depends(get_session)):
     return db_entry
 
 
-@api_router.get(
-    "/entries/search/", response_model=list[models.EntryRead], tags=["Entries"]
-)
+@api_router.get("/entries/search/", response_model=list[EntryRead], tags=["Entries"])
 def search_entries(
     session: Session = Depends(get_session),
     q: str = Query(
@@ -188,11 +187,9 @@ def search_entries(
     return results
 
 
-@api_router.put(
-    "/entries/{entry_id}", response_model=models.EntryRead, tags=["Entries"]
-)
+@api_router.put("/entries/{entry_id}", response_model=EntryRead, tags=["Entries"])
 def update_entry(
-    entry_id: int, entry_in: models.EntryUpdate, db: Session = Depends(get_session)
+    entry_id: int, entry_in: EntryUpdate, db: Session = Depends(get_session)
 ):
     """Update an entry's description or move it to a different topic."""
 

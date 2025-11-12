@@ -1,18 +1,16 @@
+from typing import Generator
+
 from sqlalchemy.event import listens_for
 from sqlmodel import create_engine, Session, SQLModel
-from typing import Generator
 
 
 DATABASE_URL = "sqlite:///database.db"
 
-
-engine = create_engine(
-    DATABASE_URL, echo=True, connect_args={"check_same_thread": False}
-)
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 
 
 @listens_for(engine, "connect")
-def _enable_foreign_keys(dbapi_con, _):
+def enable_foreign_keys(dbapi_con, _):
     """Ensures ON DELETE CASCADE is enforced by SQLite."""
 
     cursor = dbapi_con.cursor()

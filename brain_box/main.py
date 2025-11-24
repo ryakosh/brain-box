@@ -2,12 +2,13 @@ from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI, Response
 from fastapi.staticfiles import StaticFiles as FastAPIStaticFiles
 from starlette.exceptions import HTTPException
 
-from brain_box.router import api_router
 from brain_box.db import create_db_and_tables
+from brain_box.routers.topics import topics_router
+from brain_box.routers.entries import entries_router
 
 BASE_DIR = Path(__file__).parent.parent.resolve()
 FRONTEND_DIR = BASE_DIR / "webapp"
@@ -25,7 +26,7 @@ class StaticFiles(FastAPIStaticFiles):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
     create_db_and_tables()
 
     yield
@@ -37,8 +38,21 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+api_router = APIRouter(prefix="/api")
+api_router.include_router(topics_router)
+api_router.include_router(entries_router)
 
-app.include_router(api_router, prefix="/api")
+
+@app.head("/health")
+async def health_check():
+    """
+    Health check endpoint, returns 200 OK if the server is healthy.
+    """
+
+    return Response(status_code=200)
+
+
+app.include_router(api_router)
 app.mount(
     "/",
     StaticFiles(directory=FRONTEND_DIR, html=True),

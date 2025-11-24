@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlmodel import Session
 
-from brain_box import crud
+from brain_box.crud.errors import AlreadyExistsError, NotFoundError
 from brain_box.db import get_session
 from brain_box.models.entry import EntryCreate, EntryRead, EntryUpdate
 from brain_box.models.topic import (
@@ -10,6 +10,8 @@ from brain_box.models.topic import (
     TopicReadWithCounts,
     TopicUpdate,
 )
+import brain_box.crud.topic as crud_topic
+import brain_box.crud.entry as crud_entry
 
 
 api_router = APIRouter()
@@ -25,10 +27,10 @@ def create_topic(topic_in: TopicCreate, db: Session = Depends(get_session)):
     """Create a new topic."""
 
     try:
-        return crud.create_topic(session=db, topic_in=topic_in)
-    except crud.NotFoundError as e:
+        return crud_topic.create_topic(session=db, topic_in=topic_in)
+    except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except crud.AlreadyExistsError as e:
+    except AlreadyExistsError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
 
@@ -39,7 +41,7 @@ def sync_topics(
 ):
     """Get a list of all topics."""
 
-    return crud.sync_topics(session=db)
+    return crud_topic.sync_topics(session=db)
 
 
 @api_router.get(
@@ -48,7 +50,7 @@ def sync_topics(
 def read_topic(topic_id: int, db: Session = Depends(get_session)):
     """Retrieve a single topic by its ID."""
 
-    result = crud.get_topic(session=db, topic_id=topic_id)
+    result = crud_topic.get_topic(session=db, topic_id=topic_id)
 
     if result is None:
         raise HTTPException(status_code=404, detail="Topic not found")
@@ -74,7 +76,9 @@ def read_topics(
 ):
     """Get a list of topics with pagination, filterable by parent."""
 
-    results = crud.get_topics(session=db, parent_id=parent_id, skip=skip, limit=limit)
+    results = crud_topic.get_topics(
+        session=db, parent_id=parent_id, skip=skip, limit=limit
+    )
 
     return [
         TopicReadWithCounts.model_validate(
@@ -103,7 +107,7 @@ def search_topics(
 ):
     """Search for topics by name with case-insensitive partial matching."""
 
-    results = crud.search_topics(session=db, q=q, limit=limit)
+    results = crud_topic.search_topics(session=db, q=q, limit=limit)
 
     return results
 
@@ -114,12 +118,12 @@ def update_topic(
 ):
     """Update a topic's name or change its parent."""
 
-    result = crud.get_topic(session=db, topic_id=topic_id)
+    result = crud_topic.get_topic(session=db, topic_id=topic_id)
 
     if not result:
         raise HTTPException(status_code=404, detail="Topic not found")
 
-    return crud.update_topic(session=db, topic=result[0], topic_in=topic_in)
+    return crud_topic.update_topic(session=db, topic=result[0], topic_in=topic_in)
 
 
 @api_router.delete(
@@ -128,12 +132,12 @@ def update_topic(
 def delete_topic(topic_id: int, db: Session = Depends(get_session)):
     """Delete a topic."""
 
-    db_topic = crud.get_topic(session=db, topic_id=topic_id)
+    db_topic = crud_topic.get_topic(session=db, topic_id=topic_id)
 
     if not db_topic:
         raise HTTPException(status_code=404, detail="Topic not found")
 
-    crud.delete_topic(session=db, topic=db_topic[0])
+    crud_topic.delete_topic(session=db, topic=db_topic[0])
 
     return None
 
@@ -147,17 +151,17 @@ def delete_topic(topic_id: int, db: Session = Depends(get_session)):
 def create_entry(entry_in: EntryCreate, db: Session = Depends(get_session)):
     """Create a new  entry and associate it with a topic."""
 
-    if not crud.get_topic(db, entry_in.topic_id):
+    if not crud_topic.get_topic(db, entry_in.topic_id):
         raise HTTPException(status_code=404, detail="Topic not found")
 
-    return crud.create_entry(session=db, entry_in=entry_in)
+    return crud_entry.create_entry(session=db, entry_in=entry_in)
 
 
 @api_router.get("/entries/{entry_id}", response_model=EntryRead, tags=["Entries"])
 def read_entry(entry_id: int, db: Session = Depends(get_session)):
     """Retrieve a single  entry by its ID."""
 
-    db_entry = crud.get_entry(session=db, entry_id=entry_id)
+    db_entry = crud_entry.get_entry(session=db, entry_id=entry_id)
 
     if db_entry is None:
         raise HTTPException(status_code=404, detail="Entry not found")
@@ -182,7 +186,7 @@ def search_entries(
 ):
     """Search for entries."""
 
-    results = crud.search_entries(session=session, q=q, limit=limit, skip=skip)
+    results = crud_entry.search_entries(session=session, q=q, limit=limit, skip=skip)
 
     return results
 
@@ -193,12 +197,12 @@ def update_entry(
 ):
     """Update an entry's description or move it to a different topic."""
 
-    db_entry = crud.get_entry(session=db, entry_id=entry_id)
+    db_entry = crud_entry.get_entry(session=db, entry_id=entry_id)
 
     if not db_entry:
         raise HTTPException(status_code=404, detail="Entry not found")
 
-    return crud.update_entry(session=db, entry=db_entry, entry_in=entry_in)
+    return crud_entry.update_entry(session=db, entry=db_entry, entry_in=entry_in)
 
 
 @api_router.delete(
@@ -207,12 +211,12 @@ def update_entry(
 def delete_entry(entry_id: int, db: Session = Depends(get_session)):
     """Delete an entry."""
 
-    db_entry = crud.get_entry(session=db, entry_id=entry_id)
+    db_entry = crud_entry.get_entry(session=db, entry_id=entry_id)
 
     if not db_entry:
         raise HTTPException(status_code=404, detail="Entry not found")
 
-    crud.delete_entry(session=db, entry=db_entry)
+    crud_entry.delete_entry(session=db, entry=db_entry)
 
     return None
 

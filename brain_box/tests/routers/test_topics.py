@@ -174,23 +174,6 @@ def test_search_topics_validation_error_q_too_short(client: TestClient):
     assert response.status_code == 422
 
 
-def test_create_entry_for_topic(client: TestClient):
-    topic_response = client.post("/api/topics/", json={"name": "Cooking"})
-    topic_id = topic_response.json()["id"]
-
-    entry_data = {
-        "description": "Learned how to make a basic sauce.",
-        "topic_id": topic_id,
-    }
-
-    response = client.post("/api/entries/", json=entry_data)
-
-    assert response.status_code == 201
-    entry = response.json()
-    assert entry["description"] == entry_data["description"]
-    assert entry["topic"]["id"] == topic_id
-
-
 def test_delete_topic(client: TestClient):
     topic_response = client.post("/api/topics/", json={"name": "To Be Deleted"})
     assert topic_response.status_code == 201

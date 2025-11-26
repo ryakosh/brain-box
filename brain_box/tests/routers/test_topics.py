@@ -197,9 +197,7 @@ def test_delete_topic(client: TestClient):
     topic_id = topic_response.json()["id"]
 
     delete_response = client.delete(f"/api/topics/{topic_id}")
-
     assert delete_response.status_code == 204
 
     get_response = client.get(f"/api/topics/{topic_id}")
-
     assert get_response.status_code == 404

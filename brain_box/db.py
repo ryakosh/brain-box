@@ -1,5 +1,6 @@
 from typing import Generator
 
+from sqlalchemy import Engine
 from sqlalchemy.event import listens_for
 from sqlmodel import create_engine, Session, SQLModel
 
@@ -18,7 +19,7 @@ def enable_foreign_keys(dbapi_con, _):
     cursor.close()
 
 
-def create_db_and_tables():
+def create_db_and_tables(engine: Engine):
     """Initializes the database and creates tables."""
 
     SQLModel.metadata.create_all(engine)

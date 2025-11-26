@@ -6,7 +6,7 @@ from fastapi import APIRouter, FastAPI, Response
 from fastapi.staticfiles import StaticFiles as FastAPIStaticFiles
 from starlette.exceptions import HTTPException
 
-from brain_box.db import create_db_and_tables
+from brain_box.db import create_db_and_tables, engine
 from brain_box.routers.topics import topics_router
 from brain_box.routers.entries import entries_router
 
@@ -27,7 +27,7 @@ class StaticFiles(FastAPIStaticFiles):
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
-    create_db_and_tables()
+    create_db_and_tables(engine)
 
     yield
 

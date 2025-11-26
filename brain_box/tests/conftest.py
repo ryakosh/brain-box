@@ -1,21 +1,24 @@
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel, StaticPool, create_engine
 
-from brain_box.db import get_session
+from brain_box.db import create_db_and_tables, get_session
 from brain_box.main import app
-from brain_box import models
 
 
-DATABASE_URL = "sqlite:///test.db"
+DATABASE_URL = "sqlite:///:memory:"
 
 
 @pytest.fixture(scope="function", name="session")
 def session_fixture():
     engine = create_engine(
-        DATABASE_URL, echo=False, connect_args={"check_same_thread": False}
+        DATABASE_URL,
+        echo=False,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
-    SQLModel.metadata.create_all(engine)
+
+    create_db_and_tables(engine)
 
     with Session(engine) as session:
         yield session

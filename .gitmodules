@@ -1,0 +1,4 @@
+[submodule "pwa"]
+	path = pwa
+	url = git@github.com:ryakosh/brain-box-front.git
+	branch = main

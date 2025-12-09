@@ -4,10 +4,9 @@ from sqlalchemy import Engine
 from sqlalchemy.event import listens_for
 from sqlmodel import create_engine, Session, SQLModel
 
+from brain_box.config import settings
 
-DATABASE_URL = "sqlite:///database.db"
-
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+engine = create_engine(settings.database.url, connect_args={"check_same_thread": False})
 
 
 @listens_for(engine, "connect")

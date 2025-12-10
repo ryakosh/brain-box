@@ -13,12 +13,12 @@ from pydantic_settings import (
 DIR_NAME = "brain_box"
 
 _xdg_config_home = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
-XDG_CONFIG_PATH = Path(_xdg_config_home) / DIR_NAME / "settings.toml"
-CWD_CONFIG_PATH = Path.cwd() / "settings.toml"
+XDG_CONFIG_PATH = Path(_xdg_config_home) / DIR_NAME / "brain_box.toml"
+CWD_CONFIG_PATH = Path.cwd() / "brain_box.toml"
 
 _xdg_data_home = os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
 XDG_DATA_PATH = Path(_xdg_data_home) / DIR_NAME
-DEFAULT_DB_PATH = XDG_DATA_PATH / "brainbox.db"
+DEFAULT_DB_PATH = XDG_DATA_PATH / "brain_box.db"
 
 
 class General(BaseModel):

@@ -9,10 +9,9 @@ from starlette.exceptions import HTTPException
 from brain_box.db import create_db_and_tables, engine
 from brain_box.routers.topics import topics_router
 from brain_box.routers.entries import entries_router
-from brain_box.config import settings
 
 BASE_DIR = Path(__file__).parent.parent.resolve()
-FRONTEND_DIR = BASE_DIR / "webapp"
+FRONTEND_DIR = BASE_DIR / "brain_box" / "webapp"
 
 
 class StaticFiles(FastAPIStaticFiles):

@@ -25,11 +25,21 @@ test = [
 [project.scripts]
 brain-box = "brain_box.cli:app"
 
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "pwa", 
+    ".gitmodules",
+]
+force-include = { "pwa/out" = "brain_box/webapp" }
+
+
+
 [tool.hatch.build.targets.wheel]
 packages = ["brain_box"]
-
-[tool.hatch.build.targets.wheel.force-include]
-webapp = "webapp"
+exclude = [
+    "brain_box/tests",
+]
+force-include = { "brain_box/webapp" = "brain_box/webapp" }
 
 [tool.ruff]
 line-length = 88

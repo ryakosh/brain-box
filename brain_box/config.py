@@ -42,6 +42,21 @@ class Database(BaseModel):
     )
 
 
+class Security(BaseModel):
+    """Configuration for security settings."""
+
+    username: str = Field(default="admin", description="Username.")
+    hashed_password: Optional[str] = Field(
+        default=None, description="Hashed password to password-protect the app."
+    )
+    token_secret: str = Field(
+        default="CHANGE_TO_A_SECURE_SECRET", description="Secret for signing tokens."
+    )
+    token_ttl: int = Field(
+        default=60 * 24 * 7, description="Token expiration in minutes."
+    )
+
+
 class Settings(BaseSettings):
     """Main settings for Brain Box.
 
@@ -53,6 +68,7 @@ class Settings(BaseSettings):
 
     general: General = General()
     database: Database = Database()
+    security: Security = Security()
 
     model_config = SettingsConfigDict(
         env_prefix="BRAINBOX_",

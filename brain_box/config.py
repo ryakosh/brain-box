@@ -52,8 +52,11 @@ class Security(BaseModel):
     token_secret: str = Field(
         default="CHANGE_TO_A_SECURE_SECRET", description="Secret for signing tokens."
     )
-    token_ttl: int = Field(
-        default=60 * 24 * 7, description="Token expiration in minutes."
+    refresh_token_ttl: int = Field(
+        default=60 * 24 * 7, description="Refresh token expiration in minutes."
+    )
+    access_token_ttl: int = Field(
+        default=15, description="Access token expiration in minutes."
     )
 
 

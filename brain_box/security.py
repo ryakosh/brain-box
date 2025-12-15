@@ -1,23 +1,19 @@
+from uuid import UUID
 from datetime import datetime, timedelta, timezone
-from typing import Annotated
+from typing import Annotated, Literal
 
 import jwt
 from jwt.exceptions import InvalidTokenError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from pydantic import BaseModel
 from pwdlib import PasswordHash
 
+from brain_box import utils
 from brain_box.config import settings
 
 
-class Token(BaseModel):
-    token: str
-    token_type: str
-
-
 password_hash = PasswordHash.recommended()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/refresh-token")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -68,21 +64,34 @@ def verify_user(username: str, password: str) -> bool:
     return verify_password(password, hashed_password)
 
 
-def create_token(data: dict, ttl: timedelta) -> str:
-    """Creates an access token string.
+def create_token(
+    sub: str,
+    token_type: Literal["access", "refresh"],
+    ttl: timedelta,
+    jti: UUID | None = None,
+) -> str:
+    """Creates a token string.
 
     Args:
-        data: Data to be encoded.
+        sub: Subject of the token.
+        token_type: Whether this is a `refresh` or `access` token.
         ttl: Minutes after which the token is expired.
+        jti: The token ID.
 
     Returns:
-        The access token string.
+        The token string.
     """
 
-    to_encode = data.copy()
-    exp = datetime.now(timezone.utc) + ttl
+    to_encode = {
+        "sub": sub,
+        "token_type": token_type,
+        "exp": datetime.now(timezone.utc) + ttl,
+        "iat": utils.now(),
+    }
 
-    to_encode.update({"exp": exp})
+    if jti:
+        to_encode["jti"] = str(jti)
+
     encoded_token = jwt.encode(
         to_encode, settings.security.token_secret, algorithm="HS256"
     )
@@ -90,14 +99,14 @@ def create_token(data: dict, ttl: timedelta) -> str:
     return encoded_token
 
 
-async def is_authorized(token: Annotated[str, Depends(oauth2_scheme)]):
+async def is_authorized(access_token: Annotated[str, Depends(oauth2_scheme)]):
     """Checks whether user successfully logged in or not and hence is authorized or not.
 
     Args:
-        token: The access token provided using `Authorization` header.
+        access_token: The access token provided using `Authorization` header.
 
     Raises:
-        HTTPException: In case token is invalid or expired.
+        HTTPException: In case access token is invalid or expired.
     """
 
     credentials_exception = HTTPException(
@@ -108,11 +117,13 @@ async def is_authorized(token: Annotated[str, Depends(oauth2_scheme)]):
 
     try:
         payload = jwt.decode(
-            token, settings.security.token_secret, algorithms=["HS256"]
+            access_token, settings.security.token_secret, algorithms=["HS256"]
         )
-        username = payload.get("sub")
 
-        if username != settings.security.username:
+        token_type = payload.get("token_type")
+        sub = payload.get("sub")
+
+        if token_type != "access" or sub != settings.security.username:
             raise credentials_exception
 
     except InvalidTokenError:

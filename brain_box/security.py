@@ -1,6 +1,6 @@
-from uuid import UUID
+from secrets import token_urlsafe
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, Literal
+from typing import Annotated
 
 import jwt
 from jwt.exceptions import InvalidTokenError
@@ -43,6 +43,16 @@ def get_password_hash(password: str) -> str:
     return password_hash.hash(password)
 
 
+def gen_refresh_token() -> str:
+    """Generates a cryptographically safe refresh token.
+
+    Returns:
+        A refresh token.
+    """
+
+    return token_urlsafe(64)
+
+
 def verify_user(username: str, password: str) -> bool:
     """Verifies whether user are who they claim they are.
 
@@ -64,19 +74,15 @@ def verify_user(username: str, password: str) -> bool:
     return verify_password(password, hashed_password)
 
 
-def create_token(
+def create_access_token(
     sub: str,
-    token_type: Literal["access", "refresh"],
     ttl: timedelta,
-    jti: UUID | None = None,
 ) -> str:
     """Creates a token string.
 
     Args:
         sub: Subject of the token.
-        token_type: Whether this is a `refresh` or `access` token.
         ttl: Minutes after which the token is expired.
-        jti: The token ID.
 
     Returns:
         The token string.
@@ -84,13 +90,9 @@ def create_token(
 
     to_encode = {
         "sub": sub,
-        "token_type": token_type,
         "exp": datetime.now(timezone.utc) + ttl,
         "iat": utils.now(),
     }
-
-    if jti:
-        to_encode["jti"] = str(jti)
 
     encoded_token = jwt.encode(
         to_encode, settings.security.token_secret, algorithm="HS256"
@@ -120,10 +122,9 @@ async def is_authorized(access_token: Annotated[str, Depends(oauth2_scheme)]):
             access_token, settings.security.token_secret, algorithms=["HS256"]
         )
 
-        token_type = payload.get("token_type")
         sub = payload.get("sub")
 
-        if token_type != "access" or sub != settings.security.username:
+        if sub != settings.security.username:
             raise credentials_exception
 
     except InvalidTokenError:

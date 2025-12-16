@@ -1,4 +1,4 @@
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from brain_box.models.auth import RefreshToken, RefreshTokenCreate
 
@@ -40,6 +40,25 @@ def get_refresh_token(session: Session, refresh_token_id: int) -> RefreshToken |
 
     if result is None:
         return
+
+    return result
+
+
+def get_refresh_token_by_hash(
+    session: Session, refresh_token_hash: str
+) -> RefreshToken | None:
+    """Retrieves a single refresh token by hash.
+
+    Args:
+        session: The database session.
+        refresh_token_hash: The hash of the refresh token to retrieve.
+
+    Returns:
+        The refresh token model instance or None if not found.
+    """
+
+    statement = select(RefreshToken).where(RefreshToken.hash == refresh_token_hash)
+    result = session.exec(statement).first()
 
     return result
 

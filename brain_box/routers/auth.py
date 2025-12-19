@@ -16,8 +16,8 @@ from brain_box.security import create_access_token, gen_refresh_token, verify_us
 auth_router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
-@auth_router.post("/refresh-token", response_model=AccessTokenRead)
-async def refresh_token(
+@auth_router.post("/login", response_model=AccessTokenRead)
+async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     response: Response,
     db: Session = Depends(get_session),
@@ -57,8 +57,8 @@ async def refresh_token(
     return AccessTokenRead(token=token, token_type="bearer", expires_in=ttl.seconds)
 
 
-@auth_router.post("/access-token", response_model=AccessTokenRead)
-async def access_token(request: Request, db: Session = Depends(get_session)):
+@auth_router.post("/token", response_model=AccessTokenRead)
+async def token(request: Request, db: Session = Depends(get_session)):
     """Generates an access token for the user."""
 
     invalid_refresh_token_exception = HTTPException(

@@ -2,7 +2,7 @@ import hashlib
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session
 
@@ -55,6 +55,31 @@ async def login(
     token = create_access_token(sub=settings.security.username, ttl=ttl)
 
     return AccessTokenRead(token=token, token_type="bearer", expires_in=ttl.seconds)
+
+
+@auth_router.post("/logout")
+async def logout(
+    response: Response,
+    refresh_token: Annotated[str | None, Cookie()] = None,
+    db: Session = Depends(get_session),
+):
+    """Logs out the user, removing refresh token cookie."""
+
+    if refresh_token is None:
+        return {}
+
+    crud_auth.delete_refresh_token_by_hash(
+        db,
+        refresh_token_hash=hashlib.sha256(refresh_token.encode()).hexdigest(),
+    )
+    response.delete_cookie(
+        key="refresh_token",
+        httponly=True,
+        samesite="lax",
+        secure=True,
+    )
+
+    return {}
 
 
 @auth_router.post("/token", response_model=AccessTokenRead)

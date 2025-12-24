@@ -1,4 +1,4 @@
-from sqlmodel import Session, select
+from sqlmodel import Session, delete, select
 
 from brain_box.models.auth import RefreshToken, RefreshTokenCreate
 
@@ -72,4 +72,17 @@ def delete_refresh_token(session: Session, refresh_token: RefreshToken) -> None:
     """
 
     session.delete(refresh_token)
+    session.commit()
+
+
+def delete_refresh_token_by_hash(session: Session, refresh_token_hash: str) -> None:
+    """Deletes a refresh token by token hash from the database.
+
+    Args:
+        session: The database session.
+        refresh_token: The hash of the refresh token.
+    """
+
+    statement = delete(RefreshToken).where(RefreshToken.hash == refresh_token_hash)  # type: ignore
+    session.exec(statement)
     session.commit()

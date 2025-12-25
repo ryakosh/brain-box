@@ -6,6 +6,7 @@ from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session
 
+from brain_box import utils
 import brain_box.crud.auth as crud_auth
 from brain_box.config import settings
 from brain_box.db import get_session
@@ -100,7 +101,10 @@ async def token(request: Request, db: Session = Depends(get_session)):
         db, refresh_token_hash=refresh_token_hash
     )
 
-    if refresh_token is None:
+    if (
+        refresh_token is None
+        or refresh_token.expires_at.replace(tzinfo=timezone.utc) >= utils.now()
+    ):
         raise invalid_refresh_token_exception
 
     ttl = timedelta(minutes=settings.security.access_token_ttl)

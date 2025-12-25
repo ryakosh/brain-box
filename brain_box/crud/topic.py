@@ -63,7 +63,7 @@ def get_topic(session: Session, topic_id: int) -> tuple[Topic, int, int] | None:
     result = session.exec(statement).first()
 
     if result is None:
-        return
+        return None
 
     return result
 

@@ -39,7 +39,7 @@ def get_refresh_token(session: Session, refresh_token_id: int) -> RefreshToken |
     result = session.get(RefreshToken, refresh_token_id)
 
     if result is None:
-        return
+        return None
 
     return result
 

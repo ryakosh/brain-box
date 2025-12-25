@@ -50,3 +50,6 @@ line-length = 88
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+env = [ 
+    "BRAINBOX_DATABASE__URL=sqlite:///:memory:",
+]

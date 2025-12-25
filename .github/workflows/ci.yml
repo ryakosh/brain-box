@@ -10,6 +10,8 @@ jobs:
   validate:
     name: Validate
     runs-on: ubuntu-latest
+    env:
+      BRAINBOX_DATABASE__URL: "sqlite:///:memory:"
 
     steps:
       - uses: actions/checkout@v6

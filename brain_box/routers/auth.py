@@ -101,9 +101,8 @@ async def token(request: Request, db: Session = Depends(get_session)):
         db, refresh_token_hash=refresh_token_hash
     )
 
-    if (
-        refresh_token is None
-        or refresh_token.expires_at.replace(tzinfo=timezone.utc) >= utils.now()
+    if refresh_token is None or utils.now() >= refresh_token.expires_at.replace(
+        tzinfo=timezone.utc
     ):
         raise invalid_refresh_token_exception
 

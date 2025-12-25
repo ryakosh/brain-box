@@ -61,8 +61,10 @@ async def health_check():
 
 
 app.include_router(api_router)
-app.mount(
-    "/",
-    StaticFiles(directory=FRONTEND_DIR, html=True),
-    name="webapp",
-)
+
+if FRONTEND_DIR.exists():
+    app.mount(
+        "/",
+        StaticFiles(directory=FRONTEND_DIR, html=True),
+        name="webapp",
+    )
